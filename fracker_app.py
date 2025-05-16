@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
 # --- Fetch S&P 500 Tickers from Yahoo Finance ---
-@st.cache_data
 def get_sp500_tickers():
     """Get the tickers of the S&P 500 companies from Wikipedia."""
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
