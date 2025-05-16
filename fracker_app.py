@@ -22,6 +22,9 @@ def get_sp500_tickers():
         # Fetch the page using requests
         response = requests.get(url)
         
+        # Print the status code to debug
+        print(f"Response Status Code: {response.status_code}")
+        
         # Check if the response was successful
         response.raise_for_status()  # This will raise an error for bad responses (4xx, 5xx)
         
