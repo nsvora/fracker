@@ -11,19 +11,39 @@ def get_sp500_tickers():
     """Get the tickers of the S&P 500 companies from Wikipedia."""
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     
-    # Fetch the page using requests
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Find the table containing the S&P 500 tickers
-    table = soup.find('table', {'class': 'wikitable'})
+    try:
+        # Fetch the page using requests
+        response = requests.get(url)
+        
+        # Check if the response was successful
+        response.raise_for_status()  # This will raise an error for bad responses (4xx, 5xx)
+        
+        # Parse the content of the page with BeautifulSoup
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find the table containing the S&P 500 tickers
+        table = soup.find('table', {'class': 'wikitable'})
 
-    # Use pandas to parse the table directly
-    sp500 = pd.read_html(str(table))[0]
+        if table:
+            # Use pandas to parse the table directly
+            sp500 = pd.read_html(str(table))[0]
 
-    # Extract the ticker symbols
-    tickers = sp500['Symbol'].to_list()
-    return tickers
+            # Extract the ticker symbols
+            tickers = sp500['Symbol'].to_list()
+            return tickers
+        else:
+            print("Error: Could not find the table on the page.")
+            return []
+
+    except requests.exceptions.RequestException as e:
+        # Handle any network-related errors (e.g., connection problems)
+        print(f"Error fetching data from URL: {e}")
+        return []
+
+    except Exception as e:
+        # Catch any other exceptions
+        print(f"An unexpected error occurred: {e}")
+        return []
 
 # --- Load Stock Data ---
 @st.cache_data
