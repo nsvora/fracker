@@ -4,3 +4,4 @@ pandas
 matplotlib
 ta
 requests
+beautifulsoup4

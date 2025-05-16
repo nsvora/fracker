@@ -10,7 +10,18 @@ from datetime import datetime, timedelta
 def get_sp500_tickers():
     """Get the tickers of the S&P 500 companies from Wikipedia."""
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-    sp500 = pd.read_html(url)[0]
+    
+    # Fetch the page using requests
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Find the table containing the S&P 500 tickers
+    table = soup.find('table', {'class': 'wikitable'})
+
+    # Use pandas to parse the table directly
+    sp500 = pd.read_html(str(table))[0]
+
+    # Extract the ticker symbols
     tickers = sp500['Symbol'].to_list()
     return tickers
 
