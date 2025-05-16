@@ -117,5 +117,58 @@ def display_stock_data(ticker, start_date, end_date):
         else:
             highlight = "red"
             msg = "ROE (proxy for ROIC) is less than WACC — potential value destruction ⚠️"
-        st.markdown(f"
+        st.markdown(f"**ROE (Proxy for ROIC) (%)**: {roe_percent}")
+        st.markdown(f"**WACC (%)**: {wacc_input}")
+        st.info(msg)
+    else:
+        st.markdown(f"**ROE (Proxy for ROIC) (%)**: {roe_percent}")
+        st.markdown(f"**WACC (%)**: {wacc_input}")
+
+# --- Function to display sector data ---
+def display_sector_data(sector_name, start_date, end_date):
+    tickers = get_sp500_tickers()  # Fetch S&P 500 tickers
+    sector_averages = calculate_sector_averages(tickers, start_date, end_date, sector_name)
+    
+    # Display sector metrics
+    st.subheader(f"📊 {sector_name} Sector Metrics")
+    st.markdown(f"**P/E Ratio**: {sector_averages['P/E Ratio']}")
+    st.markdown(f"**P/B Ratio**: {sector_averages['P/B Ratio']}")
+    st.markdown(f"**PEG Ratio**: {sector_averages['PEG Ratio']}")
+    st.markdown(f"**EPS**: {sector_averages['EPS']}")
+    st.markdown(f"**ROE (Proxy for ROIC)**: {sector_averages['ROE (Proxy for ROIC)']}")
+
+# --- Main Logic ---
+st.title("📊 Stock and Sector Tracker with Financial Analysis")
+
+selection_type = st.radio("Select Analysis Type", ("Stock", "Sector"))
+
+range_option = st.selectbox(
+    "Select Time Range",
+    ["1 Month", "3 Months", "6 Months", "1 Year", "Custom Range"]
+)
+
+today = datetime.today()
+if range_option == "1 Month":
+    start_date = today - timedelta(days=30)
+    end_date = today
+elif range_option == "3 Months":
+    start_date = today - timedelta(days=90)
+    end_date = today
+elif range_option == "6 Months":
+    start_date = today - timedelta(days=180)
+    end_date = today
+elif range_option == "1 Year":
+    start_date = today - timedelta(days=365)
+    end_date = today
+else:
+    start_date = st.date_input("Start Date", pd.to_datetime("2023-01-01"))
+    end_date = st.date_input("End Date", pd.to_datetime(today))
+
+if selection_type == "Stock":
+    ticker = st.text_input("Enter Stock Ticker", "AAPL").upper()
+    display_stock_data(ticker, start_date, end_date)
+
+elif selection_type == "Sector":
+    sector_name = st.selectbox("Select a Sector", ["Technology", "Healthcare", "Financials", "Energy", "Consumer Discretionary"])
+    display_sector_data(sector_name, start_date, end_date)
 
