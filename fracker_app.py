@@ -64,6 +64,13 @@ ax.set_title(f"{ticker} Stock Price")
 ax.legend()
 st.pyplot(fig)
 
+# --- Display Industry and Sector ---
+st.subheader("🛠 Industry and Sector Information")
+industry = info.get("industry", "N/A")
+sector = info.get("sector", "N/A")
+st.markdown(f"**Sector**: {sector}")
+st.markdown(f"**Industry**: {industry}")
+
 # --- Financial Ratios ---
 st.subheader("📈 Key Financial Ratios")
 
