@@ -80,10 +80,12 @@ total_equity = info.get("totalStockholderEquity", 0)
 cash_to_debt = round(total_cash / total_debt, 2) if total_debt else "N/A"
 equity_to_asset = round(total_equity / total_assets, 2) if total_assets else "N/A"
 
-# Manual WACC input
+# --- Fetch ROE as a proxy for ROIC ---
+roe = info.get("returnOnEquity", "N/A")
+roe_percent = round(roe * 100, 2) if isinstance(roe, (int, float)) else "N/A"
+
+# --- WACC is not available in Yahoo Finance, so we keep it as optional user input ---
 wacc_input = st.number_input("Enter estimated WACC (%)", min_value=0.0, max_value=100.0, value=8.0, step=0.1)
-roic = info.get("returnOnEquity", 0)  # Using ROE as proxy for ROIC
-roic_percent = round(roic * 100, 2) if roic else "N/A"
 
 # --- Display ratios ---
 st.markdown("### 📋 Financial Ratios")
@@ -97,6 +99,7 @@ def format_ratio(label, value, highlight=None):
     else:
         return f"**{label}**: {value}"
 
+# Display ratios
 st.markdown(format_ratio("P/E Ratio", pe_ratio), unsafe_allow_html=True)
 st.markdown(format_ratio("Earnings Per Share (EPS)", eps), unsafe_allow_html=True)
 st.markdown(format_ratio("PEG Ratio", peg_ratio), unsafe_allow_html=True)
@@ -104,18 +107,18 @@ st.markdown(format_ratio("P/B Ratio", pb_ratio), unsafe_allow_html=True)
 st.markdown(format_ratio("Cash-to-Debt Ratio", cash_to_debt), unsafe_allow_html=True)
 st.markdown(format_ratio("Equity-to-Asset Ratio", equity_to_asset), unsafe_allow_html=True)
 
-# --- ROIC vs WACC Comparison ---
-if isinstance(roic_percent, (int, float)) and isinstance(wacc_input, (int, float)):
-    if roic_percent > wacc_input:
+# --- ROE vs WACC Comparison ---
+if isinstance(roe_percent, (int, float)) and isinstance(wacc_input, (int, float)):
+    if roe_percent > wacc_input:
         highlight = "green"
-        msg = "ROIC is greater than WACC — value creating ✅"
+        msg = "ROE (proxy for ROIC) is greater than WACC — value creating ✅"
     else:
         highlight = "red"
-        msg = "ROIC is less than WACC — potential value destruction ⚠️"
-    st.markdown(format_ratio("ROIC (%)", roic_percent, highlight), unsafe_allow_html=True)
+        msg = "ROE (proxy for ROIC) is less than WACC — potential value destruction ⚠️"
+    st.markdown(format_ratio("ROE (Proxy for ROIC) (%)", roe_percent, highlight), unsafe_allow_html=True)
     st.markdown(format_ratio("WACC (%)", wacc_input), unsafe_allow_html=True)
     st.info(msg)
 else:
-    st.markdown(format_ratio("ROIC (%)", roic_percent), unsafe_allow_html=True)
+    st.markdown(format_ratio("ROE (Proxy for ROIC) (%)", roe_percent), unsafe_allow_html=True)
     st.markdown(format_ratio("WACC (%)", wacc_input), unsafe_allow_html=True)
 
