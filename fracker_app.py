@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import ta
 import matplotlib.pyplot as plt
+import requests
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from requests.exceptions import RequestException
