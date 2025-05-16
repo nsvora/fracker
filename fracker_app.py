@@ -4,6 +4,7 @@ import pandas as pd
 import ta
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
 
 # --- Fetch S&P 500 Tickers from Yahoo Finance ---
 @st.cache_data
