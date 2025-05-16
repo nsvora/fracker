@@ -5,44 +5,14 @@ import ta
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
-# --- Predefined Stock Tickers for Industries ---
-industry_stocks = {
-    "Technology": ["AAPL", "MSFT", "GOOGL", "NVDA", "AMD"],
-    "Healthcare": ["JNJ", "PFE", "MRK", "ABT", "GSK"],
-    "Financials": ["JPM", "WFC", "GS", "C", "BAC"],
-    "Energy": ["XOM", "CVX", "COP", "BP", "TOT"],
-    "Consumer Discretionary": ["AMZN", "TSLA", "DIS", "MCD", "NKE"]
-}
-
-# --- Title ---
-st.title("📊 Stock Tracker with Industry and Technical Analysis")
-
-# --- Selection for Stock or Industry ---
-selection_type = st.radio("Select Analysis Type", ("Stock", "Industry"))
-
-# --- Time Range Selection ---
-range_option = st.selectbox(
-    "Select Time Range",
-    ["1 Month", "3 Months", "6 Months", "1 Year", "Custom Range"]
-)
-
-# --- Date Calculation ---
-today = datetime.today()
-if range_option == "1 Month":
-    start_date = today - timedelta(days=30)
-    end_date = today
-elif range_option == "3 Months":
-    start_date = today - timedelta(days=90)
-    end_date = today
-elif range_option == "6 Months":
-    start_date = today - timedelta(days=180)
-    end_date = today
-elif range_option == "1 Year":
-    start_date = today - timedelta(days=365)
-    end_date = today
-else:
-    start_date = st.date_input("Start Date", pd.to_datetime("2023-01-01"))
-    end_date = st.date_input("End Date", pd.to_datetime(today))
+# --- Fetch S&P 500 Tickers from Yahoo Finance ---
+@st.cache_data
+def get_sp500_tickers():
+    """Get the tickers of the S&P 500 companies from Wikipedia."""
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    sp500 = pd.read_html(url)[0]
+    tickers = sp500['Symbol'].to_list()
+    return tickers
 
 # --- Load Stock Data ---
 @st.cache_data
@@ -53,8 +23,35 @@ def load_data(ticker, start, end):
     info = stock.info
     return hist, info
 
+# --- Calculate Sector Averages ---
+def calculate_sector_averages(tickers, start, end, selected_sector):
+    sector_data = {
+        "P/E Ratio": [],
+        "P/B Ratio": [],
+        "PEG Ratio": [],
+        "EPS": [],
+        "ROE (Proxy for ROIC)": []
+    }
+
+    # Fetch data for each stock in the sector
+    for ticker in tickers:
+        _, info = load_data(ticker, start, end)
+        
+        # Check if the stock's sector matches the selected sector
+        sector = info.get("sector", "N/A")
+        if sector == selected_sector:
+            sector_data["P/E Ratio"].append(info.get("trailingPE", None))
+            sector_data["P/B Ratio"].append(info.get("priceToBook", None))
+            sector_data["PEG Ratio"].append(info.get("pegRatio", None))
+            sector_data["EPS"].append(info.get("trailingEps", None))
+            sector_data["ROE (Proxy for ROIC)"].append(info.get("returnOnEquity", None))
+    
+    # Calculate the average of each ratio
+    sector_averages = {key: sum(val) / len(val) if val else "N/A" for key, val in sector_data.items()}
+    return sector_averages
+
 # --- Function to fetch and display stock data ---
-def display_stock_data(ticker):
+def display_stock_data(ticker, start_date, end_date):
     data, info = load_data(ticker, start_date, end_date)
     
     if data.empty:
@@ -98,34 +95,21 @@ def display_stock_data(ticker):
     cash_to_debt = round(total_cash / total_debt, 2) if total_debt else "N/A"
     equity_to_asset = round(total_equity / total_assets, 2) if total_assets else "N/A"
 
-    # --- Fetch ROE as a proxy for ROIC ---
+    # --- ROE as a proxy for ROIC ---
     roe = info.get("returnOnEquity", "N/A")
     roe_percent = round(roe * 100, 2) if isinstance(roe, (int, float)) else "N/A"
 
-    # --- WACC is not available in Yahoo Finance, so we keep it as optional user input ---
+    # --- WACC (User Input) ---
     wacc_input = st.number_input("Enter estimated WACC (%)", min_value=0.0, max_value=100.0, value=8.0, step=0.1)
 
     # --- Display ratios ---
-    st.markdown("### 📋 Financial Ratios")
+    st.markdown(f"**P/E Ratio**: {pe_ratio}")
+    st.markdown(f"**EPS (Earnings Per Share)**: {eps}")
+    st.markdown(f"**PEG Ratio**: {peg_ratio}")
+    st.markdown(f"**P/B Ratio**: {pb_ratio}")
+    st.markdown(f"**Cash-to-Debt Ratio**: {cash_to_debt}")
+    st.markdown(f"**Equity-to-Asset Ratio**: {equity_to_asset}")
 
-    def format_ratio(label, value, highlight=None):
-        """Helper to format rows with optional red/green highlight"""
-        if highlight == "green":
-            return f"✅ **{label}**: <span style='color:green'><b>{value}</b></span>"
-        elif highlight == "red":
-            return f"⚠️ **{label}**: <span style='color:red'><b>{value}</b></span>"
-        else:
-            return f"**{label}**: {value}"
-
-    # Display ratios
-    st.markdown(format_ratio("P/E Ratio", pe_ratio), unsafe_allow_html=True)
-    st.markdown(format_ratio("Earnings Per Share (EPS)", eps), unsafe_allow_html=True)
-    st.markdown(format_ratio("PEG Ratio", peg_ratio), unsafe_allow_html=True)
-    st.markdown(format_ratio("P/B Ratio", pb_ratio), unsafe_allow_html=True)
-    st.markdown(format_ratio("Cash-to-Debt Ratio", cash_to_debt), unsafe_allow_html=True)
-    st.markdown(format_ratio("Equity-to-Asset Ratio", equity_to_asset), unsafe_allow_html=True)
-
-    # --- ROE vs WACC Comparison ---
     if isinstance(roe_percent, (int, float)) and isinstance(wacc_input, (int, float)):
         if roe_percent > wacc_input:
             highlight = "green"
@@ -133,62 +117,5 @@ def display_stock_data(ticker):
         else:
             highlight = "red"
             msg = "ROE (proxy for ROIC) is less than WACC — potential value destruction ⚠️"
-        st.markdown(format_ratio("ROE (Proxy for ROIC) (%)", roe_percent, highlight), unsafe_allow_html=True)
-        st.markdown(format_ratio("WACC (%)", wacc_input), unsafe_allow_html=True)
-        st.info(msg)
-    else:
-        st.markdown(format_ratio("ROE (Proxy for ROIC) (%)", roe_percent), unsafe_allow_html=True)
-        st.markdown(format_ratio("WACC (%)", wacc_input), unsafe_allow_html=True)
-
-# --- Function to display industry data ---
-def display_industry_data(industry_name):
-    stocks = industry_stocks.get(industry_name, [])
-    
-    if not stocks:
-        st.error("No stocks found for this industry.")
-        return
-
-    # Collect data for each stock in the industry
-    industry_data = {
-        "P/E Ratio": [],
-        "P/B Ratio": [],
-        "PEG Ratio": [],
-        "EPS": [],
-        "ROE (Proxy for ROIC)": []
-    }
-    
-    for ticker in stocks:
-        _, info = load_data(ticker, start_date, end_date)
-
-        industry_data["P/E Ratio"].append(info.get("trailingPE", 0))
-        industry_data["P/B Ratio"].append(info.get("priceToBook", 0))
-        industry_data["PEG Ratio"].append(info.get("pegRatio", 0))
-        industry_data["EPS"].append(info.get("trailingEps", 0))
-        industry_data["ROE (Proxy for ROIC)"].append(info.get("returnOnEquity", 0))
-
-    # Calculate averages
-    avg_pe = sum(industry_data["P/E Ratio"]) / len(industry_data["P/E Ratio"])
-    avg_pb = sum(industry_data["P/B Ratio"]) / len(industry_data["P/B Ratio"])
-    avg_peg = sum(industry_data["PEG Ratio"]) / len(industry_data["PEG Ratio"])
-    avg_eps = sum(industry_data["EPS"]) / len(industry_data["EPS"])
-    avg_roe = sum(industry_data["ROE (Proxy for ROIC)"]) / len(industry_data["ROE (Proxy for ROIC)"])
-
-    # Display industry metrics
-    st.subheader(f"Industry: {industry_name}")
-    st.markdown(f"**Average P/E Ratio**: {avg_pe}")
-    st.markdown(f"**Average P/B Ratio**: {avg_pb}")
-    st.markdown(f"**Average PEG Ratio**: {avg_peg}")
-    st.markdown(f"**Average EPS**: {avg_eps}")
-    st.markdown(f"**Average ROE (Proxy for ROIC)**: {avg_roe}%")
-
-# --- Main Logic ---
-if selection_type == "Stock":
-    # Stock Analysis
-    ticker = st.text_input("Enter Stock Ticker (e.g., AAPL, TSLA, MSFT)", "AAPL").upper()
-    if ticker:
-        display_stock_data(ticker)
-elif selection_type == "Industry":
-    # Industry Analysis
-    industry = st.selectbox("Select Industry", list(industry_stocks.keys()))
-    display_industry_data(industry)
+        st.markdown(f"
 
