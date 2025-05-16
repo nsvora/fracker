@@ -24,7 +24,12 @@ def get_sp500_tickers():
     try:
         # Fetch the page using requests
         response = requests.get(url)
-        
+	response.raise_for_status()  # Ensure the request was successful
+       
+        # Display the raw HTML response for debugging (first 500 characters for brevity)
+        st.write("Response from requests.get:")
+        st.text(response.text[:500])  # Shows the first 500 characters of the HTML response
+         
         # Print the status code to debug
         print(f"Response Status Code: {response.status_code}")
         
