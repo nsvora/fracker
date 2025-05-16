@@ -16,6 +16,8 @@ import pandas as pd
 
 # --- Fetch S&P 500 Tickers from Yahoo Finance ---
 def get_sp500_tickers():
+    print(f"NSV: In get_sp500_tickers")
+
     """Get the tickers of the S&P 500 companies from Wikipedia."""
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     
