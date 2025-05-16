@@ -5,6 +5,13 @@ import ta
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
+from requests.exceptions import RequestException
+
+
+import requests
+from requests.exceptions import RequestException  # Explicitly import the exception class
+from bs4 import BeautifulSoup
+import pandas as pd
 
 # --- Fetch S&P 500 Tickers from Yahoo Finance ---
 def get_sp500_tickers():
@@ -35,7 +42,7 @@ def get_sp500_tickers():
             print("Error: Could not find the table on the page.")
             return []
 
-    except requests.exceptions.RequestException as e:
+    except RequestException as e:
         # Handle any network-related errors (e.g., connection problems)
         print(f"Error fetching data from URL: {e}")
         return []
